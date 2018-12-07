@@ -4,4 +4,4 @@
 ```shell
 scrapy crawl dishes
 ```
-Результат(JSON-файл) сохраняется в дирректорию `data` под названием `restaurants.json`  
+Результат(CSV-файл) сохраняется в дирректорию `data` под названием `restaurants.csv`  

@@ -29,13 +29,13 @@ def appendData(select, type, restaurant_name, href):
         })
 
 def csvify(data):
-    csv = 'Название,Цена,Тип,Ресторан,Ссылка\n'
+    csv = 'Тип,Название,Цена,Ресторан,Ссылка\n'
     wrap = lambda x: '"' + x + '"'
 
     for obj in data:
-        csv += wrap(obj['name']) + ',' + \
+        csv += wrap(obj['type']) + ',' + \
+               wrap(obj['name']) + ',' + \
                wrap(obj['price']) + ',' + \
-               wrap(obj['type']) + ',' + \
                wrap(obj['restaurant']) + ',' + \
                wrap(obj['link']) + '\n'
 
