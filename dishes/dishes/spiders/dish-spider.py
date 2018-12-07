@@ -1,13 +1,45 @@
 from os.path import abspath, join, dirname
-import json
 import scrapy
 
-filename = join(dirname(abspath(__file__)), '../../data', 'restaurants.json')
+filename = join(dirname(abspath(__file__)), '../../data', 'restaurants.csv')
 data = []
 
-name_selector = '.item-holder .course .course__title .course__name::text'
-price_selector = '.item-holder .course .course__footer .course__price-value::text'
+pizza_xpath = "//div/p[re:test(text(), '(Пицца|Кальцоне)')]/following-sibling::ul"
+soup_xpath = "//div/p[re:test(text(), '(Первые блюда|Борщи|Супы)')]/following-sibling::ul"
+salad_xpath = "//div/p[re:test(text(), '(Салаты)')]/following-sibling::ul"
+pasta_xpath = "//div/p[re:test(text(), '(Паста|Лапша|Равиоли)')]/following-sibling::ul"
+burger_xpath = "//div/p[re:test(text(), '(Бургеры)')]/following-sibling::ul"
+sushi_xpath = "//div/p[re:test(text(), '(Суши|Роллы|Сеты)')]/following-sibling::ul"
+
+name_selector = '.course__name::text'
+price_selector = '.course__price-value::text'
 href_selector = '.card__title-link::attr(href)'
+
+def appendData(select, type, restaurant_name, href):
+    names = select.css(name_selector).extract()
+    prices = select.css(price_selector).extract()
+    for i, name in enumerate(names):
+        price = prices[i]
+        data.append({
+            'name': name,
+            'price': price,
+            'type': type,
+            'restaurant': restaurant_name,
+            'link': href,
+        })
+
+def csvify(data):
+    csv = 'Название,Цена,Тип,Ресторан,Ссылка\n'
+    wrap = lambda x: '"' + x + '"'
+
+    for obj in data:
+        csv += wrap(obj['name']) + ',' + \
+               wrap(obj['price']) + ',' + \
+               wrap(obj['type']) + ',' + \
+               wrap(obj['restaurant']) + ',' + \
+               wrap(obj['link']) + '\n'
+
+    return csv
 
 class DishSpider(scrapy.Spider):
     name = 'dishes'
@@ -22,20 +54,26 @@ class DishSpider(scrapy.Spider):
 
     def parse_restaurant(self, href):
         def next(response):
-            menu = []
             restaurant_name = response.css('.title-link::text').extract_first()
-            names = response.css(name_selector).extract()
-            prices = response.css(price_selector).extract()
 
-            for i, name in enumerate(names):
-                price = prices[i]
-                menu.append({ 'name': name, 'price': price })
+            pizza_select = response.xpath(pizza_xpath)
+            appendData(pizza_select, 'Пицца', restaurant_name, href)
 
-            data.append({
-                'name': restaurant_name,
-                'href': href,
-                'menu': menu
-            })
+            soup_select = response.xpath(soup_xpath)
+            appendData(soup_select, 'Суп', restaurant_name, href)
+
+            salad_select = response.xpath(salad_xpath)
+            appendData(salad_select, 'Салат', restaurant_name, href)
+
+            pasta_select = response.xpath(pasta_xpath)
+            appendData(pasta_select, 'Паста', restaurant_name, href)
+
+            burger_select = response.xpath(burger_xpath)
+            appendData(burger_select, 'Бургер', restaurant_name, href)
+
+            sushi_select = response.xpath(sushi_xpath)
+            appendData(sushi_select, 'Суши', restaurant_name, href)
+
         return next
 
     @classmethod
@@ -45,7 +83,7 @@ class DishSpider(scrapy.Spider):
         return spider
 
     def spider_closed(self):
+        csv = csvify(data)
         fp = open(filename, 'w')
-        json.dump(data, fp, ensure_ascii = False, indent = 2)
+        fp.write(csv)
 
-print()
