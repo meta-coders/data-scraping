@@ -11,6 +11,7 @@ salad_xpath = "//div/p[re:test(text(), '(Салаты)')]/following-sibling::ul"
 pasta_xpath = "//div/p[re:test(text(), '(Паста|Лапша|Равиоли)')]/following-sibling::ul"
 burger_xpath = "//div/p[re:test(text(), '(Бургеры)')]/following-sibling::ul"
 sushi_xpath = "//div/p[re:test(text(), '(Суши|Роллы|Сеты)')]/following-sibling::ul"
+drink_xpath = "//div/p[re:test(text(), '(Напитки|Пиво|Вино)')]/following-sibling::ul"
 
 name_selector = '.course__name::text'
 price_selector = '.course__price-value::text'
@@ -115,7 +116,34 @@ class DishSpider(scrapy.Spider):
             callback = self.parse_address(about_href, restaurant_name, href, selections)
             yield response.follow(about_href, callback)
 
+            drink_select = response.xpath(drink_xpath)
+            self.validate_drink(drink_select, restaurant_name, href)
+
         return next
+
+    def validate_drink(self, select, rest_name, href):
+        names = select.css(name_selector).extract()
+        prices = select.css(price_selector).extract()
+        for i, name in enumerate(names):
+            price = prices[i]
+
+            if "пиво" in name.lower():
+                data.append({
+                    'name': name,
+                    'price': price,
+                    'type': 'Пиво',
+                    'restaurant': rest_name,
+                    'link': href,
+                })
+
+            elif "вино" in name.lower():
+                data.append({
+                    'name': name,
+                    'price': price,
+                    'type': 'Вино',
+                    'restaurant': rest_name,
+                    'link': href,
+                })
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
