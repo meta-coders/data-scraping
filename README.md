@@ -1,5 +1,9 @@
 # data-scraping
 
+Установить scrapy:
+```shell
+pip install Scrapy
+```
 Запустить скрипт: 
 ```shell
 scrapy crawl dishes
