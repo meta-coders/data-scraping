@@ -16,7 +16,7 @@ name_selector = '.course__name::text'
 price_selector = '.course__price-value::text'
 restaurant_selector = '.card__title-link::attr(href)'
 
-def appendData(select, type, restaurant_name, href):
+def appendData(select, type, restaurant_name, href, restaurant_address):
     names = select.css(name_selector).extract()
     prices = select.css(price_selector).extract()
     for i, name in enumerate(names):
@@ -27,10 +27,11 @@ def appendData(select, type, restaurant_name, href):
             'type': type,
             'restaurant': restaurant_name,
             'link': href,
+            'address': restaurant_address,
         })
 
 def csvify(data):
-    csv = 'Тип,Название,Цена,Ресторан,Ссылка\n'
+    csv = 'Тип,Название,Цена,Ресторан,Ссылка,Адресс\n'
     wrap = lambda x: '"' + x + '"'
 
     for obj in data:
@@ -38,7 +39,8 @@ def csvify(data):
                wrap(obj['name']) + ',' + \
                wrap(obj['price']) + ',' + \
                wrap(obj['restaurant']) + ',' + \
-               wrap(obj['link']) + '\n'
+               wrap(obj['link']) + ',' + \
+               wrap(obj['address']) + '\n'
 
     return csv
 
@@ -50,34 +52,68 @@ class DishSpider(scrapy.Spider):
         restaurants = response.css(restaurant_selector).extract()
         restaurants_list = ['https://eda.ua' + href for href in restaurants]
         for href in restaurants_list:
-            parse_next = self.parse_restaurant(href)
-            yield response.follow(href, parse_next)
+            clean_href = (href.split('?')[0]) if href.find('?') != -1 else href
+            parse_next = self.parse_restaurant(clean_href)
+            yield response.follow(clean_href, parse_next)
 
         next_page_url = response.xpath(next_page_xpath).extract_first()
         if next_page_url is not None:
             yield scrapy.Request(next_page_url)
 
+    def parse_address(self, href, restaurant_name, restaurant_href, selections):
+        def next(response):
+            addresses = response.css('.addresses__item-link::text').extract()
+            restaurant_address = '; '.join(addresses) if len(addresses) != 0 else ''
+
+            (pizza_select,
+            soup_select,
+            salad_select,
+            pasta_select,
+            burger_select,
+            sushi_select) = selections
+
+            appendData(pizza_select, 'Пицца', restaurant_name, restaurant_href, restaurant_address)
+
+            appendData(soup_select, 'Суп', restaurant_name, restaurant_href, restaurant_address)
+
+            appendData(salad_select, 'Салат', restaurant_name, restaurant_href, restaurant_address)
+
+            appendData(pasta_select, 'Паста', restaurant_name, restaurant_href, restaurant_address)
+
+            appendData(burger_select, 'Бургер', restaurant_name, restaurant_href, restaurant_address)
+
+            appendData(sushi_select, 'Суши', restaurant_name, restaurant_href, restaurant_address)
+
+        return next
+
     def parse_restaurant(self, href):
         def next(response):
             restaurant_name = response.css('.title-link::text').extract_first()
+            about_href = href+'/about'
 
             pizza_select = response.xpath(pizza_xpath)
-            appendData(pizza_select, 'Пицца', restaurant_name, href)
 
             soup_select = response.xpath(soup_xpath)
-            appendData(soup_select, 'Суп', restaurant_name, href)
 
             salad_select = response.xpath(salad_xpath)
-            appendData(salad_select, 'Салат', restaurant_name, href)
 
             pasta_select = response.xpath(pasta_xpath)
-            appendData(pasta_select, 'Паста', restaurant_name, href)
 
             burger_select = response.xpath(burger_xpath)
-            appendData(burger_select, 'Бургер', restaurant_name, href)
 
             sushi_select = response.xpath(sushi_xpath)
-            appendData(sushi_select, 'Суши', restaurant_name, href)
+
+            selections = (
+            pizza_select,
+            soup_select,
+            salad_select,
+            pasta_select,
+            burger_select,
+            sushi_select,
+            )
+
+            callback = self.parse_address(about_href, restaurant_name, href, selections)
+            yield response.follow(about_href, callback)
 
         return next
 
