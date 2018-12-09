@@ -63,7 +63,7 @@ class DishSpider(scrapy.Spider):
     def parse_address(self, href, restaurant_name, restaurant_href, selections):
         def next(response):
             addresses = response.css('.addresses__item-link::text').extract()
-            restaurant_address = '; '.join(addresses) if len(addresses) != 0 else 'Not given'
+            restaurant_address = '; '.join(addresses) if len(addresses) != 0 else ''
 
             (pizza_select,
             soup_select,
