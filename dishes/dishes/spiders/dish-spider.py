@@ -35,11 +35,11 @@ def csvify(data):
     wrap = lambda x: '"' + x + '"'
 
     for obj in data:
-        csv += wrap(obj['type']) + ',' + \
-               wrap(obj['name']) + ',' + \
-               wrap(obj['price']) + ',' + \
-               wrap(obj['restaurant']) + ',' + \
-               wrap(obj['link']) + ',' + \
+        csv += wrap(obj['type']) + '|' + \
+               wrap(obj['name']) + '|' + \
+               wrap(obj['price']) + '|' + \
+               wrap(obj['restaurant']) + '|' + \
+               wrap(obj['link']) + '|' + \
                wrap(obj['address']) + '\n'
 
     return csv
