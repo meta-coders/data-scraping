@@ -1,5 +1,6 @@
 from os.path import abspath, join, dirname
 import scrapy
+import logging
 
 filename = join(dirname(abspath(__file__)), '../../data', 'restaurants.csv')
 data = []
@@ -17,15 +18,25 @@ name_selector = '.course__name::text'
 price_selector = '.course__price-value::text'
 restaurant_selector = '.card__title-link::attr(href)'
 
-def appendData(select, type, restaurant_name, href, restaurant_address):
+def get_dish_type(name):
+    if 'пив' in name.lower():
+        return 'Пиво'
+    if 'вино' in name.lower():
+        return 'Вино'
+    else:
+        return 'Напиток'
+
+
+def appendData(select, typeDish, restaurant_name, href, restaurant_address):
     names = select.css(name_selector).extract()
     prices = select.css(price_selector).extract()
     for i, name in enumerate(names):
+        type_of_dish = typeDish if typeDish != 'Напитки' else get_dish_type(name)
         price = prices[i]
         data.append({
             'name': name,
             'price': price,
-            'type': type,
+            'type': type_of_dish,
             'restaurant': restaurant_name,
             'link': href,
             'address': restaurant_address,
@@ -71,7 +82,9 @@ class DishSpider(scrapy.Spider):
             salad_select,
             pasta_select,
             burger_select,
-            sushi_select) = selections
+            sushi_select,
+            drink_select,
+            ) = selections
 
             appendData(pizza_select, 'Пицца', restaurant_name, restaurant_href, restaurant_address)
 
@@ -84,6 +97,8 @@ class DishSpider(scrapy.Spider):
             appendData(burger_select, 'Бургер', restaurant_name, restaurant_href, restaurant_address)
 
             appendData(sushi_select, 'Суши', restaurant_name, restaurant_href, restaurant_address)
+
+            appendData(drink_select, 'Напитки', restaurant_name, restaurant_href, restaurant_address)
 
         return next
 
@@ -104,6 +119,8 @@ class DishSpider(scrapy.Spider):
 
             sushi_select = response.xpath(sushi_xpath)
 
+            drink_select = response.xpath(drink_xpath)
+
             selections = (
             pizza_select,
             soup_select,
@@ -111,39 +128,13 @@ class DishSpider(scrapy.Spider):
             pasta_select,
             burger_select,
             sushi_select,
+            drink_select,
             )
 
             callback = self.parse_address(about_href, restaurant_name, href, selections)
             yield response.follow(about_href, callback)
 
-            drink_select = response.xpath(drink_xpath)
-            self.validate_drink(drink_select, restaurant_name, href)
-
         return next
-
-    def validate_drink(self, select, rest_name, href):
-        names = select.css(name_selector).extract()
-        prices = select.css(price_selector).extract()
-        for i, name in enumerate(names):
-            price = prices[i]
-
-            if "пиво" in name.lower():
-                data.append({
-                    'name': name,
-                    'price': price,
-                    'type': 'Пиво',
-                    'restaurant': rest_name,
-                    'link': href,
-                })
-
-            elif "вино" in name.lower():
-                data.append({
-                    'name': name,
-                    'price': price,
-                    'type': 'Вино',
-                    'restaurant': rest_name,
-                    'link': href,
-                })
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
